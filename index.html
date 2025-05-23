@@ -208,60 +208,56 @@
       calculateGPAandCGPA(); // initial calculation
     }
 
-    function calculateGPAandCGPA() {
-      const semesterSections = document.querySelectorAll('.semester');
-      const semesterData = {};
+function calculateGPAandCGPA(currentSemester) {
+  const semesterSections = document.querySelectorAll('.semester');
 
-      semesterSections.forEach(section => {
-        const semHeading = section.querySelector('h3');
-        const sem = semHeading.textContent.replace('Semester ', '');
-        const selects = section.querySelectorAll('select');
+  let semesterData = {};
 
-        let totalCredits = 0;
-        let totalPoints = 0;
+  semesterSections.forEach(section => {
+    const semesterLabel = section.querySelector('h3')?.textContent;
+    const semMatch = semesterLabel?.match(/Semester\s+(\d+)/);
+    if (!semMatch) return;
 
-        selects.forEach(select => {
-          const credit = parseInt(select.getAttribute('data-credit'));
-          const grade = select.value;
-          const point = gradePoints[grade];
+    const sem = semMatch[1];
+    const selects = section.querySelectorAll('select[data-semester]');
+    selects.forEach(select => {
+      const credit = parseInt(select.getAttribute('data-credit'));
+      const grade = select.value;
+      const point = gradePoints[grade];
 
-          totalCredits += credit;
-          totalPoints += point * credit;
-        });
+      if (grade === 'NA') return; // Skip if grade is not yet assigned
 
-        semesterData[sem] = {
-          credits: totalCredits,
-          points: totalPoints
-        };
-      });
+      if (!semesterData[sem]) {
+        semesterData[sem] = { credits: 0, points: 0 };
+      }
 
-      // Calculate GPA for each semester
-      Object.keys(semesterData).forEach(sem => {
-        const { credits, points } = semesterData[sem];
-        const gpa = (points / credits).toFixed(2);
-        const resultElement = document.getElementById(`result-${sem}`);
-        if (resultElement) {
-          resultElement.textContent = `Semester ${sem} GPA: ${gpa}`;
-        }
-      });
+      semesterData[sem].credits += credit;
+      semesterData[sem].points += point * credit;
+    });
+  });
 
-      // Calculate CGPA
-      let cumCredits = 0;
-      let cumPoints = 0;
-      Object.values(semesterData).forEach(({ credits, points }) => {
-        cumCredits += credits;
-        cumPoints += points;
-      });
-      const cgpa = (cumPoints / cumCredits).toFixed(2);
+  // GPA for current semester
+  let gpa = '0.00';
+  if (semesterData[currentSemester]) {
+    const { credits, points } = semesterData[currentSemester];
+    gpa = credits > 0 ? (points / credits).toFixed(2) : '0.00';
+  }
 
-      // Append CGPA to each semester result
-      Object.keys(semesterData).forEach(sem => {
-        const resultElement = document.getElementById(`result-${sem}`);
-        if (resultElement) {
-          resultElement.textContent += `, CGPA: ${cgpa}`;
-        }
-      });
-    }
+  // CGPA across visible semesters
+  let cumCredits = 0;
+  let cumPoints = 0;
+
+  Object.values(semesterData).forEach(({ credits, points }) => {
+    cumCredits += credits;
+    cumPoints += points;
+  });
+
+  const cgpa = cumCredits > 0 ? (cumPoints / cumCredits).toFixed(2) : '0.00';
+
+  // Show result for current semester
+  const resultElement = document.getElementById(`result-${currentSemester}`);
+  resultElement.textContent = `Semester ${currentSemester} GPA: ${gpa}, CGPA: ${cgpa}`;
+}
 
 
 
